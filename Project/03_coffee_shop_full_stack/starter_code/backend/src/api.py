@@ -1,5 +1,6 @@
 import os
 from flask import Flask, request, jsonify, abort
+from requests import session
 from sqlalchemy import exc
 import json
 from flask_cors import CORS
@@ -28,6 +29,15 @@ CORS(app)
     returns status code 200 and json {"success": True, "drinks": drinks} where drinks is the list of drinks
         or appropriate status code indicating reason for failure
 '''
+@app.route('/drinks')
+@requires_auth('get:drinks')
+def get_drinks(payload):
+    drinks = Drink.query.all()
+    return jsonify({
+        'success': True,
+        'drinks': drinks.short()
+    })
+
 
 
 '''
