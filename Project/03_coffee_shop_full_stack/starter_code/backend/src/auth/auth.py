@@ -1,6 +1,4 @@
 import json
-from tkinter import N
-from tkinter.messagebox import NO
 from flask import request, _request_ctx_stack
 from functools import wraps
 from jose import jwt
@@ -27,17 +25,31 @@ class AuthError(Exception):
 def get_token_auth_header():
     auth = request.headers.get('Authorization', None)
     if auth == None:
-        AuthError({
+        raise AuthError({
             'error': 'authorization_header_missing',
             'description': 'Authrozation header is not implemented'
         }, 401)
-    auth_components = auth.split('')
+
+    auth_components = auth.split()
+
     if auth_components[0].lower() != 'bearer':
-        AuthError({
+        raise AuthError({
             'error': 'authorization_header_malformed',
-            'description': 'Authrozation header has malformed'
+            'description': 'Authrozation header must start with Bearer'
         }, 401)
+    elif len(auth_components) == 1:
+        raise AuthError({
+            'code': 'invalid_header',
+            'description': 'Token not found'
+        }, 401)
+    elif len(auth_components) > 2:
+        raise AuthError({
+            'code': 'invalid_header',
+            'description': 'Authorization header must be bearer token.'
+        }, 401)
+    
     token = auth_components[1]
+    
     return token
     
 
@@ -58,7 +70,7 @@ def check_permissions(permission, payload):
             'code': 'permissions_object_missing',
             'description': 'Permission object is missing in the payload'
         }, 401)
-    elif permission not in payload['permission']:
+    elif permission not in payload['permissions']:
         raise AuthError({
             'code': 'unauthorized',
             'description': 'Permission to perform this action is unauthorized'
@@ -83,7 +95,7 @@ def verify_decode_jwt(token):
     auth0_link = 'https://{}/.well-known/jwks.json'.format(AUTH0_DOMAIN)
     jsonurl = urlopen(auth0_link)
     json_web_keys = json.loads(jsonurl.read())
-    unverified_header = get_token_auth_header(token)
+    unverified_header = jwt.get_unverified_header(token)
 
     # Construction of RSA keys, which will be used in decoding the JWT
     rsa_key = {}
@@ -95,13 +107,14 @@ def verify_decode_jwt(token):
     # Looking up for the key
     for key in json_web_keys['keys']:
         if key['kid'] == unverified_header['kid']:
-            rsa = {
+            rsa_key = {
                 'kty': key['kty'],
                 'kid': key['kid'],
                 'use': key['use'],
                 'n': key['n'],
                 'e': key['e']
             }
+    
     # Budiling up the payload
     if rsa_key:
         try:
@@ -127,11 +140,11 @@ def verify_decode_jwt(token):
                 'code': 'invalid_header',
                 'description': 'Server could not parse authentication token'
             })
-    else:
-        raise AuthError({
-            'code': 'invalid_key',
-            'description': "Server couldn't find the correct key."
-        }, 400)
+    
+    raise AuthError({
+        'code': 'invalid_key',
+        'description': "Server couldn't find the correct key."
+    }, 400)
 
 '''
 @TODO implement @requires_auth(permission) decorator method
