@@ -82,29 +82,29 @@ def get_drinks_detail(payload):
 @requires_auth('post:drinks')
 def post_drinks(payload):
     new_drink_data = request.get_json()
-    new_drink_title = new_drink_data['title']
-    new_drink_recipe = new_drink_data['recipe']
-    new_drink_recipe_formatted = json.dumps(new_drink_recipe)
-    # new_drink_recipe = json.dumps(new_drink_recipe)
-    # new_drink_recipe = "{}".format(new_drink_recipe)
+    # new_drink_title = new_drink_data['title']
+    # new_drink_recipe = new_drink_data['recipe']
+    # new_drink_recipe_formatted = json.dumps(new_drink_recipe)
 
-    print(new_drink_recipe, " ", type(new_drink_recipe))
+    new_drink_title = new_drink_data.get('title', None)
+    new_drink_recipe = new_drink_data.get('recipe', None)
+
     
     new_drink = Drink(
         title = new_drink_title, 
-        recipe = new_drink_recipe_formatted
+        recipe = new_drink_recipe
         )
     try:
         new_drink.insert()
     except Exception:
         abort(422)
     get_new_drink = Drink.query.filter(Drink.title==new_drink_title).all()
-    new_drink_info = []
-    for drink in get_new_drink:
-        new_drink_info.append(drink.long())
+    # new_drink_info = []
+    # for drink in get_new_drink:
+    #     new_drink_info.append(drink.long())
     return jsonify({
         "success": True,
-        "drinks": new_drink_info
+        "drinks": [get_new_drink.long()]
     })
 
 '''
@@ -138,7 +138,7 @@ def update_drinks(payload,id):
 
     return jsonify({
         "success": True,
-        "drinks": updated_drink 
+        "drinks": [updated_drink]
     })
 
 
